@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <link href="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/692e3a1dce3f48d4695234d3/1bd9fda22_logo.png" rel="icon" type="image/svg+xml"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <link href="https://healthmattershm.base44.app/manifest.json" rel="manifest"/>
+  <title>
+   home | Health Matters (HM)
+  </title>
+  <script crossorigin="" src="/assets/index-C_PWK4rL.js" type="module">
+  </script>
+  <link crossorigin="" href="/assets/index-CgA3ou7z.css" rel="stylesheet"/>
+  <meta content="home | Health Matters (HM)" property="og:title"/>
+  <meta content="Your anonymous health guide for Nigeria &amp; Africa, offering quick symptom assessments, disease risk predictions, and localized health information, optimized for low-bandwidth networks." property="og:description"/>
+  <meta content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/render/image/public/base44-prod/public/692e3a1dce3f48d4695234d3/1bd9fda22_logo.png?width=1200&amp;height=630&amp;resize=contain" property="og:image"/>
+  <meta content="https://healthmattershm.base44.app/home" property="og:url"/>
+  <meta content="website" property="og:type"/>
+  <meta content="Health Matters (HM)" property="og:site_name"/>
+  <meta content="summary_large_image" name="twitter:card"/>
+  <meta content="home | Health Matters (HM)" name="twitter:title"/>
+  <meta content="Your anonymous health guide for Nigeria &amp; Africa, offering quick symptom assessments, disease risk predictions, and localized health information, optimized for low-bandwidth networks." name="twitter:description"/>
+  <meta content="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/render/image/public/base44-prod/public/692e3a1dce3f48d4695234d3/1bd9fda22_logo.png?width=1200&amp;height=630&amp;resize=contain" name="twitter:image"/>
+  <meta content="https://healthmattershm.base44.app/home" name="twitter:url"/>
+  <meta content="Your anonymous health guide for Nigeria &amp; Africa, offering quick symptom assessments, disease risk predictions, and localized health information, optimized for low-bandwidth networks." name="description"/>
+  <meta content="yes" name="mobile-web-app-capable"/>
+  <meta content="black" name="apple-mobile-web-app-status-bar-style"/>
+  <meta content="Health Matters (HM)" name="apple-mobile-web-app-title"/>
+  <link href="https://healthmattershm.base44.app/home" rel="canonical"/>
+  <script async="true" data-app-id="692e3a1dce3f48d4695234d3" data-platform-url="https://app.base44.com" src="/static/js/badge.js">
+  </script>
+ </head>
+ <body>
+  <div id="root">
+  </div>
+ </body>
+</html>
