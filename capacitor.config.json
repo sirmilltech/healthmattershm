@@ -1,8 +1,12 @@
-{
-  "appId": "com.despia.healthmattershm",
-  "appName": "Health Matters HM",
-  "webDir": "public",
-  "server": {
-    "androidScheme": "https"
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'io.ionic.starter',
+  appName: 'myApp',
+  webDir: 'public',
+  server: {
+    androidScheme: 'https'
   }
-}
+};
+
+export default config;
