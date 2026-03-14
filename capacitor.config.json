@@ -2,7 +2,6 @@
   "appId": "com.despia.healthmattershm",
   "appName": "Health Matters HM",
   "webDir": "public",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   }
