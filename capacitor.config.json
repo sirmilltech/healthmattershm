@@ -1,5 +1,5 @@
 {
-  "appId": "com.healthmatters.app",
+  "appId": "com.despia.healthmattershm",
   "appName": "Health Matters HM",
   "webDir": "public",
   "bundledWebRuntime": false,

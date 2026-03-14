@@ -1,6 +1,6 @@
 {
-  "name": "health-matters-hm",
-  "version": "1.0.0",
+  "name": "healthmattershm",
+  "version": "1.0.1",
   "description": "Health Matters App",
   "main": "index.html",
   "scripts": {
