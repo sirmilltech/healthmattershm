@@ -1,0 +1,59 @@
+workflows:
+  ios-workflow:
+    name: iOS Build (iPhone 8+ Support)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      node: latest
+      xcode: latest
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+    scripts:
+      - name: Install dependencies
+        script: | 
+          npm install
+          npm install -g @capacitor/cli
+      - name: Capacitor Sync
+        script: | 
+          npx cap build ios
+          npx cap sync ios
+      - name: Set iOS Deployment Target
+        script: |
+          # This ensures compatibility with iPhone 8 by targeting iOS 16.0
+          cd ios/App
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' App.xcodeproj/project.pbxproj
+      - name: Install CocoaPods
+        script: | 
+          cd ios/App && pod install
+      - name: Build iOS IPA
+        script: | 
+          # This builds the final package for distribution
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme $XCODE_SCHEME
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # Replace with your email to get the build link
+
+  android-workflow:
+    name: Android Build
+    max_build_duration: 120
+    environment:
+      node: latest
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm install
+      - name: Capacitor Sync
+        script: |
+          npx cap sync android
+      - name: Build Android
+        script: |
+          cd android && ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/apk/release/*.apk
+```
