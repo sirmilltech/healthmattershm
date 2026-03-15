@@ -18,6 +18,9 @@ workflows:
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.despia.healthmatterhm"
         DEVELOPMENT_TEAM: "JBMD9M6ZPC"
+        # 1. GENERATE A GITHUB PAT (Personal Access Token) with 'repo' scope
+        # 2. ADD IT TO CODEMAGIC UI: Settings > Environment Variables
+        # 3. NAME IT: GITHUB_TOKEN
       node: 20.11.0
       xcode: latest
 
@@ -28,20 +31,27 @@ workflows:
         script: npx cap sync ios
       - name: Commit and Push Changes
         script: |
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "Error: GITHUB_TOKEN is not set in environment variables."
+            exit 1
+          fi
+
           # Configure Git User
           git config user.email "builder@codemagic.io"
           git config user.name "Codemagic Builder"
           
-          # Stage changes (Capacitor often modifies project.pbxproj)
+          # Stage changes
           git add .
           
-          # Commit only if there are changes to avoid script failure
+          # Commit only if there are changes
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "chore: automatic capacitor sync [skip ci]"
             
-            # Push using the SSH key or Auth token configured in your repo settings
-            # This assumes your repository is set up with write access
-            git push origin $CM_BRANCH
+            # Re-construct the remote URL with the token for authentication
+            # Format: https://<token>@github.com/owner/repo.git
+            REMOTE_URL="https://$GITHUB_TOKEN@github.com/sirmilltech/healthmattershm.git"
+            
+            git push "$REMOTE_URL" HEAD:$CM_BRANCH
           else
             echo "No changes to commit"
           fi
