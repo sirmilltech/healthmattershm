@@ -6,7 +6,7 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: "HEALTHMATTERSHM" # REPLACE this with the exact name of your integration in Codemagic Team/User settings
+      app_store_connect: "HEALTHMATTERSHM" # Matches your integration name in Codemagic settings
     
     environment:
       ios_signing:
@@ -31,46 +31,11 @@ workflows:
         script: xcode-project use-profiles
       - name: Build IPA for Distribution
         script: |
+          # Use --configuration instead of --mode to avoid the "unrecognized arguments" error
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
-            --mode release
-
-      - name: Build and Archive
-        script: |
-          XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
-          xcodebuild \
-            -workspace "$XCODE_WORKSPACE" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath build/ios/xcarchive/App.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            PROVISIONING_PROFILE="$PROVISIONING_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_NAME" \
-            CODE_SIGN_IDENTITY="iPhone Distribution" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            archive
-
-      - name: Export IPA
-        script: |
-          mkdir -p build/ios/ipa
-          python3 -c "
-          import os, plistlib
-          data = {
-              'method': 'app-store',
-              'teamID': 'JBMD9M6ZPC',
-              'uploadSymbols': True,
-              'manageAppVersionAndBuildNumber': False,
-              'provisioningProfiles': {'com.despia.healthmatterhm': os.getenv('PROVISIONING_NAME')}
-          }
-          with open('export_options.plist', 'wb') as f:
-              plistlib.dump(data, f)
-          "
-          xcodebuild -exportArchive \
-            -archivePath build/ios/xcarchive/App.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist export_options.plist
+            --configuration Release
             
     artifacts:
       - build/ios/ipa/*.ipa
