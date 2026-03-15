@@ -1,6 +1,6 @@
 {
   "appId": "com.despia.healthmattershm",
   "appName": "healthmattershm",
-  "webDir": "dist", 
+  "webDir": "public",
   "bundledWebRuntime": false
 }
