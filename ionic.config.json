@@ -1,0 +1,38 @@
+{
+  "name": "healthmattershm",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
+```
+
+### Step 3: Clean & Force Install
+Run these commands in order to wipe the "corrupted" state and start fresh:
+
+1.  **Remove broken links:**
+    ```bash
+    rmdir /s /q node_modules
+    del package-lock.json
+    ```
+2.  **Force clean install (ignoring the peer conflicts for a moment):**
+    ```bash
+    npm install --legacy-peer-deps
+    ```
+
+### Step 4: Build and Sync
+Now that the tools are actually installed, run:
+```bash
+npx ionic build
+npx cap sync ios
+```
+
+### Step 5: Update Capacitor Config
+Ensure your `capacitor.config.json` points to the correct build folder (usually `dist` for Vite/React):
+```json
+{
+  "appId": "io.ionic.starter",
+  "appName": "healthmattershm",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

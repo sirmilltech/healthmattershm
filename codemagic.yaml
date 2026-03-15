@@ -7,36 +7,40 @@ workflows:
       node: 20
       xcode: latest
       cocoapods: default
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
     scripts:
       - name: Clean and Install dependencies
         script: | 
-          # Remove existing artifacts
+          # 1. Clean environment
           rm -rf node_modules package-lock.json
           
-          # Install core dependencies first
-          npm install @capacitor/core@6.2.0 @capacitor/cli@6.2.0 --save
+          # 2. Install Core and CLI first
+          npm install @capacitor/core@6.2.0 @capacitor/cli@6.2.0 --save --legacy-peer-deps
           
-          # Install iOS platform matching the core version (v6)
-          # We use --legacy-peer-deps to ignore the strict check failures
-          npm install @capacitor/ios@6.2.0 --save --legacy-peer-deps
+          # 3. Explicitly install the iOS platform package
+          # Using --save-exact ensures we don't accidentally get a higher version
+          npm install @capacitor/ios@6.2.0 --save-exact --legacy-peer-deps
           
-          # Install other plugins at their v6 compatible versions
+          # 4. Install essential plugins at v6
           npm install @capacitor/keyboard@6.0.0 @capacitor/status-bar@6.0.0 @capacitor/app@6.0.0 --save --legacy-peer-deps
           
-          # Final full install to catch anything else
-          npm install --legacy-peer-deps
+          # 5. Verify the package exists for the next step
+          if [ -d "node_modules/@capacitor/ios" ]; then
+            echo "@capacitor/ios is confirmed installed."
+          else
+            echo "ERROR: @capacitor/ios not found in node_modules!"
+            exit 1
+          fi
       - name: Capacitor Sync
         script: |
+          # Ensure we are in the root and run sync
+          # We add the platform explicitly just in case the folder was missing
+          npx cap add ios || true 
           npx cap sync ios
       - name: CocoaPods Install
         script: |
           cd ios/App
+          # Update repo to ensure we can find latest pods if needed
+          pod repo update
           pod install
       - name: Build iOS (Debug)
         script: |
