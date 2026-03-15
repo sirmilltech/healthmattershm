@@ -1,4 +1,4 @@
-# Optimized for Capacitor iOS Release & Distribution
+# Corrected build arguments and Git push logic
 workflows:
   ios-release:
     name: HealthMatters Native Build
@@ -6,7 +6,7 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: "HEALTHMATTERSHM" # Matches your integration name in Codemagic settings
+      app_store_connect: "HEALTHMATTERSHM"
     
     environment:
       ios_signing:
@@ -31,11 +31,28 @@ workflows:
         script: xcode-project use-profiles
       - name: Build IPA for Distribution
         script: |
-          # Use --configuration instead of --mode to avoid the "unrecognized arguments" error
+          # Removed --configuration as it caused an error
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --configuration Release
+            --scheme "$XCODE_SCHEME"
+
+      - name: Push changes to repository
+        script: |
+          # Configure Git Identity
+          git config --global user.email "builder@codemagic.io"
+          git config --global user.name "Codemagic Builder"
+          
+          # Add all changes (pbxproj, capacitor files, etc)
+          git add .
+          
+          # Check for changes and push if they exist
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore: automatic capacitor sync [skip ci]"
+            # Pushes to current branch. [skip ci] prevents infinite build loops.
+            git push origin HEAD:main
+          else
+            echo "No changes to commit."
+          fi
             
     artifacts:
       - build/ios/ipa/*.ipa
