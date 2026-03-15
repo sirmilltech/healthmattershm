@@ -11,12 +11,10 @@ workflows:
         XCODE_SCHEME: "App"
     scripts:
       - name: Install dependencies
-        script: | 
-          npm install
+        script: |
           Build Web
           npm install -g @capacitor/cli
-      - name: Capacitor Sync
-        script: npm run build
+          npm run build
       - name: Capacitor Sync
         script: | 
           npx cap build ios

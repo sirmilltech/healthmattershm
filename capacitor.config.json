@@ -1,12 +1,6 @@
-import { CapacitorConfig } from '@capacitor/cli';
-
-const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'myApp',
-  webDir: 'public',
-  server: {
-    androidScheme: 'https'
-  }
-};
-
-export default config;
+{
+  "appId": "com.despia.healthmattershm",
+  "appName": "healthmattershm",
+  "webDir": "dist", 
+  "bundledWebRuntime": false
+}
