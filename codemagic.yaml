@@ -10,35 +10,33 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
     scripts:
-      - name: Install dependencies
+      - name: Install dependencies and Build Web
         script: |
-          Build Web
-          cd ios/App && pod install
+          npm install
           npm install -g @capacitor/cli
           npm run build
       - name: Capacitor Sync
         script: | 
-          npx cap build ios
           npx cap sync ios
       - name: Set iOS Deployment Target
         script: |
-          # This ensures compatibility with iPhone 8 by targeting iOS 16.0
+          # Target iOS 16.0 for iPhone 8 compatibility
           cd ios/App
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' App.xcodeproj/project.pbxproj
       - name: Install CocoaPods
         script: | 
+          cd ios/App && pod install
       - name: Build iOS IPA
         script: | 
-          # This builds the final package for distribution
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
-            --scheme $XCODE_SCHEME
+            --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
       email:
         recipients:
-          - mattershmhealth@gmail.com # Replace with your email to get the build link
+          - mattershmhealth@gmail.com
 
   android-workflow:
     name: Android Build
