@@ -4,9 +4,6 @@ node_modules/
 
 Native Platforms (Codemagic creates these)
 
-android/
-ios/
-
 Build outputs
 
 www/
