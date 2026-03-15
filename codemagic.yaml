@@ -23,10 +23,15 @@ workflows:
       xcode: latest
 
     scripts:
+      - name: Install NPM packages
       - name: Install dependencies
         script: npm install
-      - name: Capacitor Sync
+      - name: Sync Capacitor
         script: npx cap sync ios
+               cd ios/App
+               pod install
+               cd ../..
+      - name: Install CocoaPods
       - name: Set up code signing
         script: xcode-project use-profiles
       - name: Build IPA for Distribution

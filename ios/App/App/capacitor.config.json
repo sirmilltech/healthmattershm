@@ -1,1 +1,12 @@
-{}
+{
+	"appId": "com.despia.healthmatterhm",
+	"appName": "healthmattershm",
+	"webDir": "public",
+	"bundledWebRuntime": false,
+	"packageClassList": [
+		"AppPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"StatusBarPlugin"
+	]
+}
