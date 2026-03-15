@@ -23,7 +23,6 @@ workflows:
       xcode: latest
 
     scripts:
-
       - name: Install Node modules
         script: |
           npm install
