@@ -23,22 +23,41 @@ workflows:
       xcode: latest
 
     scripts:
+
+      - name: Install Node modules
+        script: |
+          npm install
+
+      - name: Build Web App
+        script: |
+          npm run build
+
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+
+      - name: Install CocoaPods
+        script: |
+          cd ios/App
+          pod install
+          cd ../..
+
+      - name: Build iOS
+        script: |
+          xcodebuild \
+          -workspace ios/App/App.xcworkspace \
+          -scheme App \
+          -configuration Release \
+          -archivePath build/App.xcarchive \
+          archive
+
+        scripts:
       - name: Install NPM packages
               Install dependencies
-        script: npm install
-      - name: Sync Capacitor
-        script: npx cap sync ios
-               cd ios/App
-               pod install
-               cd ../..
-      - name: Install CocoaPods
-              Set up code signing
         script: xcode-project use-profiles
       - name: Build IPA for Distribution
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
 
       - name: Build and Archive
         script: |
