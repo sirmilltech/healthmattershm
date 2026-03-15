@@ -32,7 +32,7 @@ workflows:
                pod install
                cd ../..
       - name: Install CocoaPods
-      - name: Set up code signing
+              Set up code signing
         script: xcode-project use-profiles
       - name: Build IPA for Distribution
         script: |
