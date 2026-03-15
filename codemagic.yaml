@@ -49,7 +49,7 @@ workflows:
           -archivePath build/App.xcarchive \
           archive
 
-        scripts:
+  scripts:
       - name: Install NPM packages
               Install dependencies
         script: xcode-project use-profiles
@@ -90,10 +90,10 @@ workflows:
             -exportPath build/ios/ipa \
             -exportOptionsPlist export_options.plist
             
-    artifacts:
+  artifacts:
       - build/ios/ipa/*.ipa
 
-    publishing:
+  publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
