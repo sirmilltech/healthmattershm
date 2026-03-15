@@ -1,57 +1,43 @@
 workflows:
-  ios-workflow:
-    name: iOS Build (iPhone 8+ Support)
+  native-build:
+    name: HealthMatters Native Build
     max_build_duration: 120
-    instance_type: mac_mini_m2
+    instance_type: mac_mini_m1
     environment:
-      node: latest
+      node: 20
       xcode: latest
-      vars:
-        XCODE_PROJECT: "ios/App/App.xcodeproj"
-        XCODE_SCHEME: "App"
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
     scripts:
-      - name: Install dependencies and Build Web
-        script: |
-          npm install
-          npm install -g @capacitor/cli
-          npm run build
-      - name: Capacitor Sync
+      - name: Clean and Install dependencies
         script: | 
+          # Remove any existing nodes and locks to prevent conflicts
+          rm -rf node_modules package-lock.json
+          npm install
+          # Force install the iOS platform package
+          npm install @capacitor/ios@latest --save
+      - name: Capacitor Sync
+        script: |
+          # If the ios folder exists but isn't recognized, we add it explicitly
+          # 'npx cap add ios' will fail if already present, so we use 'sync' 
+          # but ensure the dependency is definitely linked first.
           npx cap sync ios
-      - name: Set iOS Deployment Target
+      - name: CocoaPods Install
         script: |
-          # Target iOS 16.0 for iPhone 8 compatibility
           cd ios/App
-          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' App.xcodeproj/project.pbxproj
-      - name: Install CocoaPods
-        script: | 
-          cd ios/App && pod install
-      - name: Build iOS IPA
-        script: | 
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme "$XCODE_SCHEME"
+          pod install
+      - name: Build iOS (Debug)
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphoneos \
+            build CODE_SIGNING_ALLOWED=NO
     artifacts:
-      - build/ios/ipa/*.ipa
-    publishing:
-      email:
-        recipients:
-          - mattershmhealth@gmail.com
-
-  android-workflow:
-    name: Android Build
-    max_build_duration: 120
-    environment:
-      node: latest
-    scripts:
-      - name: Install dependencies
-        script: |
-          npm install
-      - name: Capacitor Sync
-        script: |
-          npx cap sync android
-      - name: Build Android
-        script: |
-          cd android && ./gradlew assembleRelease
-    artifacts:
-      - android/app/build/outputs/apk/release/*.apk
+      - ios/App/build/iphoneos/*.app
