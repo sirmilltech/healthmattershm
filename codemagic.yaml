@@ -1,54 +1,33 @@
+# Optimized for Capacitor iOS Release & Distribution
 workflows:
-  native-build:
+  ios-release:
     name: HealthMatters Native Build
-    max_build_duration: 60
-    instance_type: mac_mini_m1
+    instance_type: mac_mini_m2
+    max_build_duration: 120
     environment:
-      node: 20
-      xcode: latest
-      cocoapods: default
+      groups:
+        - app_store_credentials # Ensure this group exists in your Codemagic Environment variables
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
     scripts:
-      - name: Clean and Install dependencies
-        script: | 
-          # 1. Clean environment
-          rm -rf node_modules package-lock.json
-          
-          # 2. Install Core and CLI first
-          npm install @capacitor/core@6.2.0 @capacitor/cli@6.2.0 --save --legacy-peer-deps
-          
-          # 3. Explicitly install the iOS platform package
-          # Using --save-exact ensures we don't accidentally get a higher version
-          npm install @capacitor/ios@6.2.0 --save-exact --legacy-peer-deps
-          
-          # 4. Install essential plugins at v6
-          npm install @capacitor/keyboard@6.0.0 @capacitor/status-bar@6.0.0 @capacitor/app@6.0.0 --save --legacy-peer-deps
-          
-          # 5. Verify the package exists for the next step
-          if [ -d "node_modules/@capacitor/ios" ]; then
-            echo "@capacitor/ios is confirmed installed."
-          else
-            echo "ERROR: @capacitor/ios not found in node_modules!"
-            exit 1
-          fi
+      - name: Install dependencies
+        script: npm install
       - name: Capacitor Sync
+        script: npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build IPA for Distribution
         script: |
-          # Ensure we are in the root and run sync
-          # We add the platform explicitly just in case the folder was missing
-          npx cap add ios || true 
-          npx cap sync ios
-      - name: CocoaPods Install
-        script: |
-          cd ios/App
-          # Update repo to ensure we can find latest pods if needed
-          pod repo update
-          pod install
-      - name: Build iOS (Debug)
-        script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Debug \
-            -sdk iphoneos \
-            build CODE_SIGNING_ALLOWED=NO
+          # Changed from 'debug' to 'release' to generate the .ipa file
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --mode release \
+            --archive-flags="-allowProvisioningUpdates"
     artifacts:
-      - ios/App/build/iphoneos/*.app
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
