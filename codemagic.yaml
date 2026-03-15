@@ -41,7 +41,6 @@ workflows:
           cd ios/App
           pod install
           cd ../..
-
       - name: Build iOS
         script: |
           xcodebuild \
