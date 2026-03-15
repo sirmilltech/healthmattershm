@@ -13,6 +13,7 @@ workflows:
       - name: Install dependencies
         script: |
           Build Web
+          cd ios/App && pod install
           npm install -g @capacitor/cli
           npm run build
       - name: Capacitor Sync
@@ -26,7 +27,6 @@ workflows:
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = .*/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' App.xcodeproj/project.pbxproj
       - name: Install CocoaPods
         script: | 
-          cd ios/App && pod install
       - name: Build iOS IPA
         script: | 
           # This builds the final package for distribution
