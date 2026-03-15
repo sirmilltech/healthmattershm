@@ -1,7 +1,7 @@
 workflows:
   native-build:
     name: HealthMatters Native Build
-    max_build_duration: 120
+    max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
       node: 20
@@ -16,16 +16,23 @@ workflows:
     scripts:
       - name: Clean and Install dependencies
         script: | 
-          # Remove any existing nodes and locks to prevent conflicts
+          # Remove existing artifacts
           rm -rf node_modules package-lock.json
-          npm install
-          # Force install the iOS platform package
-          npm install @capacitor/ios@latest --save
+          
+          # Install core dependencies first
+          npm install @capacitor/core@6.2.0 @capacitor/cli@6.2.0 --save
+          
+          # Install iOS platform matching the core version (v6)
+          # We use --legacy-peer-deps to ignore the strict check failures
+          npm install @capacitor/ios@6.2.0 --save --legacy-peer-deps
+          
+          # Install other plugins at their v6 compatible versions
+          npm install @capacitor/keyboard@6.0.0 @capacitor/status-bar@6.0.0 @capacitor/app@6.0.0 --save --legacy-peer-deps
+          
+          # Final full install to catch anything else
+          npm install --legacy-peer-deps
       - name: Capacitor Sync
         script: |
-          # If the ios folder exists but isn't recognized, we add it explicitly
-          # 'npx cap add ios' will fail if already present, so we use 'sync' 
-          # but ensure the dependency is definitely linked first.
           npx cap sync ios
       - name: CocoaPods Install
         script: |
