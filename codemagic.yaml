@@ -17,7 +17,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-        BUNDLE_ID: "com.milltech.nurmecca.app"
+        BUNDLE_ID: "com.despia.healthmatterhm"
         DEVELOPMENT_TEAM: "JBMD9M6ZPC"
       node: 20.11.0
       xcode: latest
@@ -62,7 +62,7 @@ workflows:
               'teamID': 'JBMD9M6ZPC',
               'uploadSymbols': True,
               'manageAppVersionAndBuildNumber': False,
-              'provisioningProfiles': {'com.milltech.nurmecca.app': os.getenv('PROVISIONING_NAME')}
+              'provisioningProfiles': {'com.despia.healthmatterhm': os.getenv('PROVISIONING_NAME')}
           }
           with open('export_options.plist', 'wb') as f:
               plistlib.dump(data, f)
