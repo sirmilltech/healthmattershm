@@ -67,7 +67,6 @@ scripts:
         -scheme "$XCODE_SCHEME" \
         -configuration Release \
         -archivePath build/ios/xcarchive/App.xcarchive \
-        CODE_SIGN_STYLE=Manual \
         DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
         PROVISIONING_PROFILE_SPECIFIER="$PROV_PROFILE_NAME" \
         CODE_SIGN_IDENTITY="iPhone Distribution" \
