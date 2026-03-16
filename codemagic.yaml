@@ -10,7 +10,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.despia.healthmatterhm
+        bundle_identifier: JBMD9M6ZPC.com.despia.healthmatterhm
 
       groups:
         - apple_auth_hm
@@ -18,7 +18,7 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-        BUNDLE_ID: "com.despia.healthmatterhm"
+        BUNDLE_ID: "JBMD9M6ZPC.com.despia.healthmatterhm"
         DEVELOPMENT_TEAM: "JBMD9M6ZPC"
 
       node: 20.11.0
