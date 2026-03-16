@@ -1,99 +1,110 @@
 # Optimized for Capacitor iOS Release & Distribution
-# Decode the profile from your environment variables
- # Assumes you have a variable named PROVISIONING_PROFILE_DATA containing the base64 profile
-         # Extract the UUID or Name from the profile to use in the build command
-
 
 workflows:
-  ios-release:
-    name: HealthMatters Native Build
-    max_build_duration: 120
-    instance_type: mac_mini_m2
+ios-release:
+name: HealthMatters Native Build
+max_build_duration: 120
+instance_type: mac_mini_m2
 
-    integrations:
-      app_store_connect: "HEALTHMATTERSHM"
+integrations:
+  app_store_connect: "HEALTHMATTERSHM"
 
-    environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.despia.healthmatterhm
-      groups:
-        - apple_auth_hm
-      vars:
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-        XCODE_SCHEME: "App"
-        BUNDLE_ID: "com.despia.healthmatterhm"
-        DEVELOPMENT_TEAM: "JBMD9M6ZPC"
-        node: 20.11.0
-        xcode: latest
+environment:
+  ios_signing:
+    distribution_type: app_store
+    bundle_identifier: com.despia.healthmatterhm
 
-    scripts:
-      - name: Install Node modules
-        script: |
-          npm install
-      - name: Build Web App
-        script: |
-          npm run build
-      - name: Capacitor Sync
-        script: |
-          npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
-          
-      - name: Set up code signing
-        script: |
-           xcode-project use-profiles
-           echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+  groups:
+    - apple_auth_hm
 
-        echo "Using Profile: $PROFILE_NAME"
-         echo "export PROV_PROFILE_NAME=\"$PROFILE_NAME\"" >> $CM_ENV
-     
+  vars:
+    XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+    XCODE_SCHEME: "App"
+    BUNDLE_ID: "com.despia.healthmatterhm"
+    DEVELOPMENT_TEAM: "JBMD9M6ZPC"
 
-      - name: Build and Archive
-        script: |
-         xcodebuild -workspace "$XCODE_WORKSPACE" \
-         -scheme "$XCODE_SCHEME" \
-         -configuration Release \
-         -archivePath build/ios/xcarchive/App.xcarchive \
-         CODE_SIGN_STYLE=Manual \
-         DEVELOPMENT_TEAM=JBMD9M6ZPC \
-         PROVISIONING_PROFILE_SPECIFIER="$PROV_PROFILE_NAME" \
-         CODE_SIGN_IDENTITY="iPhone Distribution" \
-         PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-         archive
-      - name: Export IPA
-        script: |
-         # Create exportOptions.plist dynamically
-          cat <<EOF > exportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-          <key>method</key>
-          <string>app-store</string>
-          <key>teamID</key>
-          <string>JBMD9M6ZPC</string>
-          <key>provisioningProfiles</key>
-          <dictionary>
-              <key>$BUNDLE_ID</key>
-              <string>$PROV_PROFILE_NAME</string>
-          </dictionary>
-          </dict>
-          </plist>
-          EOF
+  node: 20.11.0
+  xcode: latest
 
-          xcodebuild -exportArchive \
-            -archivePath build/ios/xcarchive/App.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist export_options.plist
-            
-    artifacts:
-      - build/ios/ipa/*.ipa
+scripts:
 
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
+  - name: Install Node modules
+    script: |
+      npm install
+
+  - name: Build Web App
+    script: |
+      npm run build
+
+  - name: Capacitor Sync
+    script: |
+      npx cap sync ios
+
+  - name: Install CocoaPods
+    script: |
+      cd ios/App
+      pod install
+      cd ../..
+
+  - name: Set up code signing
+    script: |
+      xcode-project use-profiles
+
+      mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+
+      echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+
+      PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+
+      echo "Using Profile: $PROFILE_NAME"
+
+      echo "export PROV_PROFILE_NAME=\"$PROFILE_NAME\"" >> $CM_ENV
+
+  - name: Build and Archive
+    script: |
+      xcodebuild \
+        -workspace "$XCODE_WORKSPACE" \
+        -scheme "$XCODE_SCHEME" \
+        -configuration Release \
+        -archivePath build/ios/xcarchive/App.xcarchive \
+        CODE_SIGN_STYLE=Manual \
+        DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+        PROVISIONING_PROFILE_SPECIFIER="$PROV_PROFILE_NAME" \
+        CODE_SIGN_IDENTITY="iPhone Distribution" \
+        PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+        archive
+
+  - name: Export IPA
+    script: |
+      mkdir -p build/ios/ipa
+
+      cat <<EOF > exportOptions.plist
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>method</key>
+        <string>app-store</string>
+        <key>teamID</key>
+        <string>JBMD9M6ZPC</string>
+        <key>provisioningProfiles</key>
+        <dict>
+          <key>$BUNDLE_ID</key>
+          <string>$PROV_PROFILE_NAME</string>
+        </dict>
+      </dict>
+      </plist>
+      EOF
+
+      xcodebuild -exportArchive \
+        -archivePath build/ios/xcarchive/App.xcarchive \
+        -exportPath build/ios/ipa \
+        -exportOptionsPlist exportOptions.plist
+
+artifacts:
+  - build/ios/ipa/*.ipa
+
+publishing:
+  app_store_connect:
+    auth: integration
+    submit_to_testflight: true
