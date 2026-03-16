@@ -1,4 +1,9 @@
 # Optimized for Capacitor iOS Release & Distribution
+# Decode the profile from your environment variables
+ # Assumes you have a variable named PROVISIONING_PROFILE_DATA containing the base64 profile
+         # Extract the UUID or Name from the profile to use in the build command
+
+
 workflows:
   ios-release:
     name: HealthMatters Native Build
@@ -39,6 +44,11 @@ workflows:
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+          echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+        echo "Using Profile: $PROFILE_NAME"
+         echo "export PROV_PROFILE_NAME=\"$PROFILE_NAME\"" >> $CM_ENV
+     
 
       - name: Build and Archive
         script: |
