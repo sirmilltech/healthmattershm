@@ -42,7 +42,7 @@ workflows:
 
       - name: Setup Code Signing
         script: |
-          # Initialize and set as default keychain
+          # Initialize keychain
           keychain initialize
           
           # Install Certificate
@@ -57,8 +57,7 @@ workflows:
             echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
           fi
 
-          # Use PlistBuddy to extract the exact Profile Name and UUID
-          # We use security cms to decode the profile first
+          # Extract the Profile Name and UUID
           DECODED_PROV="/tmp/decoded.plist"
           security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision > "$DECODED_PROV"
           
@@ -68,11 +67,11 @@ workflows:
           echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
           echo "export PROV_UUID=\"$PROV_UUID\"" >> $CM_ENV
           
-          # List certificates to verify installation in logs
-          security find-identity -v -p codesigning
+          echo "Found Profile: $PROV_NAME ($PROV_UUID)"
 
       - name: Build and Archive
         script: |
+          # Force manual signing by overriding project settings
           xcodebuild \
             -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
@@ -80,7 +79,9 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROV_NAME" \
             PROVISIONING_PROFILE="$PROV_UUID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             archive
 
       - name: Export IPA
