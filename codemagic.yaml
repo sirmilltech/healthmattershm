@@ -6,52 +6,39 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: "HEALTHMATTERSHM" # REPLACE this with the exact name of your integration in Codemagic Team/User settings
+      app_store_connect: "HEALTHMATTERSHM"
 
     environment:
       ios_signing:
-      distribution_type: app_store
-      bundle_identifier: com.despia.healthmatterhm
-
+        distribution_type: app_store
+        bundle_identifier: com.despia.healthmatterhm
       groups:
         - apple_auth_hm
-
-    vars:
-      XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-      XCODE_SCHEME: "App"
-      BUNDLE_ID: "com.despia.healthmatterhm"
-      DEVELOPMENT_TEAM: "JBMD9M6ZPC"
-      node: 20.11.0
-      xcode: latest
+      vars:
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+        BUNDLE_ID: "com.despia.healthmatterhm"
+        DEVELOPMENT_TEAM: "JBMD9M6ZPC"
+        node: 20.11.0
+        xcode: latest
 
     scripts:
       - name: Install Node modules
         script: |
-         npm install
+          npm install
       - name: Build Web App
         script: |
-         npm run build
-
-      - name: Install dependencies
-        script: npm install
+          npm run build
       - name: Capacitor Sync
-        script: npx cap sync ios
-
+        script: |
+          npx cap sync ios
       - name: Install CocoaPods
         script: |
           cd ios/App
           pod install
-          cd ../..
-
       - name: Set up code signing
-        script: xcode-project use-profiles
-      - name: Build IPA for Distribution
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --mode release
-
+          xcode-project use-profiles
       - name: Build and Archive
         script: |
           XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
@@ -67,33 +54,28 @@ workflows:
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             archive
-
-      - name: Build IPA for Distribution
-        script: |
-         xcode-project build-ipa
- 
       - name: Export IPA
         script: |
-         mkdir -p build/ios/ipa
-         python3 - <<EOF
-         import os, plistlib
-         data = {
-          "method": "app-store",
-          "teamID": "JBMD9M6ZPC",
-          "uploadSymbols": True,
-          "manageAppVersionAndBuildNumber": False,
-          "provisioningProfiles": {
-              "com.despia.healthmatterhm": os.getenv("PROVISIONING_NAME")
+          mkdir -p build/ios/ipa
+          python3 - <<EOF
+          import os, plistlib
+          data = {
+              "method": "app-store",
+              "teamID": "JBMD9M6ZPC",
+              "uploadSymbols": True,
+              "manageAppVersionAndBuildNumber": False,
+              "provisioningProfiles": {
+                  "com.despia.healthmatterhm": os.getenv("PROVISIONING_NAME")
+              }
           }
+          with open("export_options.plist", "wb") as f:
+              plistlib.dump(data, f)
+          EOF
 
-        with open("export_options.plist", "wb") as f:
-          plistlib.dump(data, f)
-         EOF
-
-         xcodebuild -exportArchive \
-         -archivePath build/ios/xcarchive/App.xcarchive \
-         -exportPath build/ios/ipa \
-         -exportOptionsPlist export_options.plist
+          xcodebuild -exportArchive \
+            -archivePath build/ios/xcarchive/App.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist export_options.plist
             
     artifacts:
       - build/ios/ipa/*.ipa
