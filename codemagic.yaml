@@ -34,30 +34,39 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Install CocoaPods
+      - name: Install CocoaPods and Fix Signing
         script: |
           cd ios/App
+          # This ruby snippet prevents Pods from trying to use your manual signing identity
+          cat <<EOF >> Podfile
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ""
+                config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
+                config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
+              end
+            end
+          end
+          EOF
           pod install
           cd ../..
 
       - name: Setup Code Signing
         script: |
-          # Initialize keychain
           keychain initialize
           
-          # Install Certificate
           if [ -n "$CERTIFICATE_DATA" ]; then
             echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
             keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
           fi
           
-          # Install Provisioning Profile
           if [ -n "$PROVISIONING_PROFILE_DATA" ]; then
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
           fi
 
-          # Extract the Profile Name and UUID
           DECODED_PROV="/tmp/decoded.plist"
           security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision > "$DECODED_PROV"
           
@@ -69,49 +78,14 @@ workflows:
           
           echo "Found Profile: $PROV_NAME ($PROV_UUID)"
 
+    # Important: Replaced manual xcodebuild with the simpler xcode-project utility which handles the mapping better
       - name: Build and Archive
         script: |
-          # Force manual signing by overriding project settings
-          xcodebuild \
-            -workspace "$XCODE_WORKSPACE" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath build/ios/App.xcarchive \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROV_NAME" \
-            PROVISIONING_PROFILE="$PROV_UUID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            archive
-
-      - name: Export IPA
-        script: |
-          mkdir -p build/ios/ipa
-
-          cat <<EOF > exportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>$DEVELOPMENT_TEAM</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>$BUNDLE_ID</key>
-              <string>$PROV_NAME</string>
-            </dict>
-          </dict>
-          </plist>
-          EOF
-
-          xcodebuild -exportArchive \
-            -archivePath build/ios/App.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist exportOptions.plist
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --bundle-id "$BUNDLE_ID" \
+            --archive-flags "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM PROVISIONING_PROFILE_SPECIFIER=$PROV_NAME"
 
     artifacts:
       - build/ios/ipa/*.ipa
