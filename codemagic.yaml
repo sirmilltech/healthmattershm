@@ -42,30 +42,37 @@ workflows:
 
       - name: Setup Code Signing
         script: |
-          # Initialize keychain
+          # Initialize and set as default keychain
           keychain initialize
           
-          # Use Codemagic's automatic fetching if profiles are managed in UI, 
-          # otherwise manually decode from environment variables
-          xcode-project use-profiles
-          
+          # Install Certificate
           if [ -n "$CERTIFICATE_DATA" ]; then
             echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
             keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
           fi
           
+          # Install Provisioning Profile
           if [ -n "$PROVISIONING_PROFILE_DATA" ]; then
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
           fi
 
-          # Extract provisioning profile info for manual signing
-          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+          # Use PlistBuddy to extract the exact Profile Name and UUID
+          # We use security cms to decode the profile first
+          DECODED_PROV="/tmp/decoded.plist"
+          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision > "$DECODED_PROV"
+          
+          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$DECODED_PROV")
+          PROV_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$DECODED_PROV")
+          
           echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
+          echo "export PROV_UUID=\"$PROV_UUID\"" >> $CM_ENV
+          
+          # List certificates to verify installation in logs
+          security find-identity -v -p codesigning
 
       - name: Build and Archive
         script: |
-          # We use Manual signing here to avoid the "No Accounts" error
           xcodebuild \
             -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
@@ -73,7 +80,7 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROV_NAME" \
+            PROVISIONING_PROFILE="$PROV_UUID" \
             archive
 
       - name: Export IPA
@@ -86,7 +93,7 @@ workflows:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>teamID</key>
             <string>$DEVELOPMENT_TEAM</string>
             <key>signingStyle</key>
@@ -104,21 +111,6 @@ workflows:
             -archivePath build/ios/App.xcarchive \
             -exportPath build/ios/ipa \
             -exportOptionsPlist exportOptions.plist
-
-      - name: Git Commit and Push Changes
-        script: |
-          # Prevent build loops by checking if the last commit was by the builder
-          git config user.email "builder@codemagic.io"
-          git config user.name "Codemagic Builder"
-          
-          git add .
-          # Only commit if there are changes to avoid exit code 1
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "Fix exportOptions plist creation"
-            git push origin main
-          else
-            echo "No changes to commit"
-          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
