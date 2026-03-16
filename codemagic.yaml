@@ -47,6 +47,21 @@ workflows:
       - name: Setup Code Signing
         script: |
           xcode-project use-profiles
+          
+          keychain initialize
+
+          echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
+      
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+
+          PROV_UUID=$(grep -aA1 "UUID" ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
+          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+      
+          echo "export PROV_UUID=\"$PROV_UUID\"" >> $CM_ENV
+          echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
+
 
       - name: Build and Archive
         script: |
