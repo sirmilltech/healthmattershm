@@ -11,21 +11,17 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.despia.healthmatterhm
-
       groups:
         - apple_auth_hm
-
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "com.despia.healthmatterhm"
         DEVELOPMENT_TEAM: "JBMD9M6ZPC"
-
       node: 20.11.0
       xcode: latest
 
     scripts:
-
       - name: Install Node modules
         script: |
           npm install
@@ -44,62 +40,85 @@ workflows:
           pod install
           cd ../..
 
+      - name: Setup Code Signing
+        script: |
+          # Initialize keychain
+          keychain initialize
+          
+          # Use Codemagic's automatic fetching if profiles are managed in UI, 
+          # otherwise manually decode from environment variables
+          xcode-project use-profiles
+          
+          if [ -n "$CERTIFICATE_DATA" ]; then
+            echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
+            keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
+          fi
+          
+          if [ -n "$PROVISIONING_PROFILE_DATA" ]; then
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+          fi
+
+          # Extract provisioning profile info for manual signing
+          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+          echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
+
       - name: Build and Archive
         script: |
+          # We use Manual signing here to avoid the "No Accounts" error
           xcodebuild \
             -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
             -configuration Release \
             -archivePath build/ios/App.xcarchive \
-            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROV_NAME" \
             archive
-
-      - name: Setup Code Signing
-        script: |
-          xcode-project use-profiles
-          
-          keychain initialize
-
-          echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
-          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
-      
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-
-          PROV_UUID=$(grep -aA1 "UUID" ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision | grep -o "[-A-Z0-9]\{36\}")
-          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
-      
-          echo "export PROV_UUID=\"$PROV_UUID\"" >> $CM_ENV
-          echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
-
 
       - name: Export IPA
         script: |
-         mkdir -p build/ios/ipa
+          mkdir -p build/ios/ipa
 
-         cat <<EOF > exportOptions.plist
-         <?xml version="1.0" encoding="UTF-8"?>
-         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-         "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-         <plist version="1.0">
+          cat <<EOF > exportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store-connect</string>
+            <string>app-store</string>
             <key>teamID</key>
             <string>$DEVELOPMENT_TEAM</string>
             <key>signingStyle</key>
-            <string>automatic</string>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key>
+              <string>$PROV_NAME</string>
+            </dict>
           </dict>
           </plist>
-         EOF
+          EOF
 
-         xcodebuild -exportArchive \
-          -archivePath build/ios/App.xcarchive \
-          -exportPath build/ios/ipa \
-          -allowProvisioningUpdates \
-          -exportOptionsPlist exportOptions.plist
+          xcodebuild -exportArchive \
+            -archivePath build/ios/App.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist exportOptions.plist
+
+      - name: Git Commit and Push Changes
+        script: |
+          # Prevent build loops by checking if the last commit was by the builder
+          git config user.email "builder@codemagic.io"
+          git config user.name "Codemagic Builder"
+          
+          git add .
+          # Only commit if there are changes to avoid exit code 1
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Fix exportOptions plist creation"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
