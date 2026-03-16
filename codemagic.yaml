@@ -1,10 +1,10 @@
 # Optimized for Capacitor iOS Release & Distribution
 
 workflows:
-ios-release:
-name: HealthMatters Native Build
-max_build_duration: 120
-instance_type: mac_mini_m2
+   ios-release:
+    name: HealthMatters Native Build
+    max_build_duration: 120
+    instance_type: mac_mini_m2
 
 integrations:
   app_store_connect: "HEALTHMATTERSHM"
