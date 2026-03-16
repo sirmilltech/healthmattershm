@@ -41,11 +41,13 @@ workflows:
         script: |
           cd ios/App
           pod install
+          
       - name: Set up code signing
         script: |
-          xcode-project use-profiles
-          echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+           xcode-project use-profiles
+           echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision))
+
         echo "Using Profile: $PROFILE_NAME"
          echo "export PROV_PROFILE_NAME=\"$PROFILE_NAME\"" >> $CM_ENV
      
