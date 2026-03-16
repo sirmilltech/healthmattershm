@@ -62,23 +62,30 @@ workflows:
 
       - name: Export IPA
         script: |
-          mkdir -p build/ios/ipa
+           mkdir -p build/ios/ipa
 
-          cat <<EOF > exportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-          "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store</string>
-            <key>teamID</key>
-            <string>$DEVELOPMENT_TEAM</string>
-          </dict>
-          </plist>
-          EOF
+           cat <<EOF > exportOptions.plist
+           <?xml version="1.0" encoding="UTF-8"?>
+           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+           "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+           <plist version="1.0">
+           <dict>
+               <key>method</key>
+               <string>app-store-connect</string>
+               <key>teamID</key>
+               <string>$DEVELOPMENT_TEAM</string>
+               <key>signingStyle</key>
+               <string>automatic</string>
+               <key>provisioningProfiles</key>
+               <dict>
+                  <key>$BUNDLE_ID</key>
+                   <string>hm_provisioning_profile</string>
+            </dict>
+            </dict>
+           </plist>
+           EOF
 
-          xcodebuild -exportArchive \
+           xcodebuild -exportArchive \
             -archivePath build/ios/App.xcarchive \
             -exportPath build/ios/ipa \
             -exportOptionsPlist exportOptions.plist
