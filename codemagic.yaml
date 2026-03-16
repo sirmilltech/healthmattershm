@@ -39,35 +39,38 @@ workflows:
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+
       - name: Build and Archive
-        script: |
-          XCODE_WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
-          xcodebuild \
-            -workspace "$XCODE_WORKSPACE" \
-            -scheme "$XCODE_SCHEME" \
-            -configuration Release \
-            -archivePath build/ios/xcarchive/App.xcarchive \
-            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
-            PROVISIONING_PROFILE="$PROVISIONING_UUID" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_NAME" \
-            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            archive
+         script: |
+         xcodebuild -workspace "$XCODE_WORKSPACE" \
+         -scheme "$XCODE_SCHEME" \
+         -configuration Release \
+         -archivePath build/ios/xcarchive/App.xcarchive \
+         CODE_SIGN_STYLE=Manual \
+         DEVELOPMENT_TEAM=JBMD9M6ZPC \
+         PROVISIONING_PROFILE_SPECIFIER="$PROV_PROFILE_NAME" \
+         CODE_SIGN_IDENTITY="iPhone Distribution" \
+         PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+         archive
       - name: Export IPA
         script: |
-          mkdir -p build/ios/ipa
-          python3 - <<EOF
-          import os, plistlib
-          data = {
-              "method": "app-store",
-              "teamID": "JBMD9M6ZPC",
-              "uploadSymbols": True,
-              "manageAppVersionAndBuildNumber": False,
-              "provisioningProfiles": {
-                  "com.despia.healthmatterhm": os.getenv("PROVISIONING_NAME")
-              }
-          }
-          with open("export_options.plist", "wb") as f:
-              plistlib.dump(data, f)
+         # Create exportOptions.plist dynamically
+          cat <<EOF > exportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          <key>method</key>
+          <string>app-store</string>
+          <key>teamID</key>
+          <string>JBMD9M6ZPC</string>
+          <key>provisioningProfiles</key>
+          <dictionary>
+              <key>$BUNDLE_ID</key>
+              <string>$PROV_PROFILE_NAME</string>
+          </dictionary>
+          </dict>
+          </plist>
           EOF
 
           xcodebuild -exportArchive \
