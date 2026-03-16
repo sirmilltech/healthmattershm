@@ -13,8 +13,8 @@ workflows:
       distribution_type: app_store
       bundle_identifier: com.despia.healthmatterhm
 
-    groups:
-    - apple_auth_hm
+      groups:
+        - apple_auth_hm
 
     vars:
       XCODE_WORKSPACE: "ios/App/App.xcworkspace"
