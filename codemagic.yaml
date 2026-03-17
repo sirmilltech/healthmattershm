@@ -16,8 +16,8 @@ workflows:
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-        BUNDLE_ID: "com.despia.healthmatterhm"
-        DEVELOPMENT_TEAM: "JBMD9M6ZPC"
+        # The variables below are used by 'use-profiles' automatically
+        APP_STORE_APPLE_ID: "YOUR_APPLE_ID_NUMERIC" 
       node: 20.11.0
       xcode: latest
 
@@ -34,56 +34,24 @@ workflows:
         script: |
           npx cap sync ios
 
-      - name: Install CocoaPods and Fix Signing
+      - name: Install CocoaPods
         script: |
           cd ios/App
-          cat <<EOF >> Podfile
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ""
-                config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
-                config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
-              end
-            end
-          end
-          EOF
           pod install
-          cd ../..
 
       - name: Setup Code Signing
         script: |
-          keychain initialize
-          
-          if [ -n "$CERTIFICATE_DATA" ]; then
-            echo "$CERTIFICATE_DATA" | base64 --decode > /tmp/certificate.p12
-            keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password "$CERT_PASSWORD"
-          fi
-          
-          if [ -n "$PROVISIONING_PROFILE_DATA" ]; then
-            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-            echo "$PROVISIONING_PROFILE_DATA" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-          fi
-
-          DECODED_PROV="/tmp/decoded.plist"
-          security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision > "$DECODED_PROV"
-          
-          PROV_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$DECODED_PROV")
-          PROV_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$DECODED_PROV")
-          
-          echo "export PROV_NAME=\"$PROV_NAME\"" >> $CM_ENV
-          echo "export PROV_UUID=\"$PROV_UUID\"" >> $CM_ENV
-          
-          echo "Found Profile: $PROV_NAME ($PROV_UUID)"
+          # This single command replaces the manual keychain/plist logic.
+          # It fetches profiles from Apple and generates the required export_options.plist
+          xcode-project use-profiles
 
       - name: Build and Archive
         script: |
-          # Removed the unsupported --bundle-id flag which was causing the CLI error
+          # We remove the manual archive-flags because use-profiles 
+          # handles the environment configuration automatically.
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --archive-flags "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM PROVISIONING_PROFILE_SPECIFIER=$PROV_NAME"
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
